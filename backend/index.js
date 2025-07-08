@@ -13,9 +13,18 @@ function buildJunoAuthHeader(apiKey, apiSecret, method, path, body = '') {
 }
 
 const app = express();
-const PORT = process.env.PORT || 4000;
 
-app.use(cors());
+// Configurar CORS para producción
+app.use(cors({
+  origin: [
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'https://enerpay.vercel.app',
+    'https://*.vercel.app'
+  ],
+  credentials: true
+}));
+
 app.use(express.json());
 app.use('/api', bitsoWebhook);
 
@@ -358,6 +367,13 @@ app.post('/api/register-bank', async (req, res) => {
 
 // Los endpoints de Bitso fueron removidos ya que ahora usamos exclusivamente Juno
 
-app.listen(PORT, () => {
-  console.log(`Servidor backend escuchando en http://localhost:${PORT}`);
-}); 
+// Para desarrollo local
+if (process.env.NODE_ENV !== 'production') {
+  const PORT = process.env.PORT || 4000;
+  app.listen(PORT, () => {
+    console.log(`Servidor backend escuchando en http://localhost:${PORT}`);
+  });
+}
+
+// Exportar para Vercel
+module.exports = app; 

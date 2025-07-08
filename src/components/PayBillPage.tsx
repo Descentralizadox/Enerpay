@@ -11,6 +11,16 @@ import {
   ChevronDown,
   ChevronUp
 } from 'lucide-react';
+import { API_ENDPOINTS, apiRequest } from '../utils/api';
+
+interface ApiResponse<T = any> {
+  success: boolean;
+  payload?: T;
+  error?: {
+    message: string;
+    code?: string;
+  };
+}
 
 interface BillInfo {
   serviceNumber: string;
@@ -31,52 +41,39 @@ interface BankAccount {
 
 // Función para obtener el ID de la cuenta bancaria registrada
 async function fetchBankAccountId() {
-  const res = await fetch('http://localhost:4000/api/bank-accounts');
-  const data = await res.json();
-  
-  if (!res.ok) {
-    console.error('Error al obtener cuentas bancarias:', data);
-    throw new Error(data.error?.message || 'Error al obtener cuentas bancarias');
+  try {
+    const data = await apiRequest<ApiResponse<BankAccount[]>>(API_ENDPOINTS.bankAccounts);
+    
+    if (data && data.success && data.payload && data.payload.length > 0) {
+      // Usa la primera cuenta disponible
+      const cuenta = data.payload[0];
+      console.log('Cuenta encontrada:', cuenta);
+      return cuenta.id;
+    }
+    console.log('No se encontraron cuentas bancarias');
+    return null;
+  } catch (error) {
+    console.error('Error al obtener cuentas bancarias:', error);
+    throw error;
   }
-  
-  if (data && data.success && data.payload && data.payload.length > 0) {
-    // Usa la primera cuenta disponible
-    const cuenta = data.payload[0];
-    console.log('Cuenta encontrada:', cuenta);
-    return cuenta.id;
-  }
-  console.log('No se encontraron cuentas bancarias');
-  return null;
 }
 
 // Función para hacer el redemption
-async function redeemMXNB(amount: number, destination_bank_account_id: string) {
+async function redeemMXNB(amount: number, destination_bank_account_id: string): Promise<ApiResponse> {
   console.log(`🔄 Iniciando redención: ${amount} MXN a cuenta ${destination_bank_account_id}`);
   
-  const res = await fetch('http://localhost:4000/api/redeem', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ amount, destination_bank_account_id })
-  });
-  
-  console.log(`📡 Respuesta del servidor: ${res.status} ${res.statusText}`);
-  
-  const result = await res.json();
-  console.log(`✅ Resultado de redención:`, result);
-  
-  if (!res.ok) {
-    console.error(`❌ Error del servidor:`, result);
-    const errorMessage = result.error?.message || `HTTP ${res.status}: Error en la redención`;
-    throw new Error(errorMessage);
+  try {
+    const result = await apiRequest<ApiResponse>(API_ENDPOINTS.redeem, {
+      method: 'POST',
+      body: JSON.stringify({ amount, destination_bank_account_id })
+    });
+    
+    console.log(`✅ Resultado de redención:`, result);
+    return result;
+  } catch (error) {
+    console.error(`❌ Error en redención:`, error);
+    throw error;
   }
-  
-  // Verificar si la respuesta del backend indica éxito
-  if (!result.success) {
-    console.error(`❌ Redención falló:`, result.error);
-    throw new Error(result.error?.message || 'Error en la redención');
-  }
-  
-  return result;
 }
 
 
@@ -101,11 +98,7 @@ export default function PayBillPage() {
 
   useEffect(() => {
     console.log('Cargando cuentas bancarias...');
-    fetch('http://localhost:4000/api/bank-accounts')
-      .then(res => {
-        console.log('Respuesta del servidor:', res.status);
-        return res.json();
-      })
+    apiRequest<ApiResponse<BankAccount[]>>(API_ENDPOINTS.bankAccounts)
       .then(data => {
         console.log('Datos recibidos:', data);
         if (data.success) {
@@ -132,12 +125,10 @@ export default function PayBillPage() {
     try {
       console.log('Obteniendo cuentas bancarias...');
       // 1. Obtener cuentas bancarias del backend
-      const res = await fetch('http://localhost:4000/api/bank-accounts');
-      console.log('Status de cuentas bancarias:', res.status);
-      const data = await res.json();
+      const data = await apiRequest<ApiResponse<BankAccount[]>>(API_ENDPOINTS.bankAccounts);
       console.log('Cuentas bancarias:', data);
       
-      if (!res.ok || !data.success) {
+      if (!data.success) {
         setErrorMsg(data.error?.message || 'Error al obtener cuentas bancarias');
         setLoading(false);
         return;
