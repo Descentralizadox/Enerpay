@@ -30,9 +30,8 @@ export default function Footer() {
             </div>
             
             <p className="text-gray-300 mb-6 max-w-md leading-relaxed">
-              La primera plataforma que permite a mexicanos en el extranjero pagar 
-              recibos de luz de sus familiares usando criptomonedas estables de forma 
-              instantánea y segura.
+            EnerPay es la primera plataforma que permite a mexicanos en el extranjero pagar recibos de luz con criptomonedas estables de forma instantánea y segura.
+            Además, ofrece a las empresas y gobiernos una solución para centralizar y automatizar sus pagos de servicios con trazabilidad, eficiencia y control total.
             </p>
             
             <div className="flex space-x-4">

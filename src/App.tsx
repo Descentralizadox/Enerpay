@@ -34,7 +34,9 @@ function App() {
       
       {/* Contenido principal con padding para la navegación inferior */}
       <main className="pb-20">
-        {renderPage()}
+        {currentPage === 'home' ? (
+          <HomePage onPageChange={setCurrentPage} />
+        ) : renderPage()}
       </main>
       
       {/* Footer */}

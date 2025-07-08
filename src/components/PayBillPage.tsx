@@ -7,7 +7,9 @@ import {
   CheckCircle, 
   AlertCircle, 
   Copy,
-  ExternalLink 
+  ExternalLink,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 
 interface BillInfo {
@@ -24,6 +26,10 @@ export default function PayBillPage() {
   const [amount, setAmount] = useState('');
   const [paymentStep, setPaymentStep] = useState('input'); // input, review, processing, success
   const [billInfo, setBillInfo] = useState<BillInfo | null>(null);
+  const [showBulk, setShowBulk] = useState(false);
+  const [bulkCount, setBulkCount] = useState(2);
+  const [bulkFields, setBulkFields] = useState([{ rpu: '', amount: '' }, { rpu: '', amount: '' }]);
+  const [bulkStep, setBulkStep] = useState<'input' | 'review' | 'processing' | 'success'>('input');
 
   const mockBillInfo = {
     serviceNumber: '123456789012',
@@ -53,6 +59,31 @@ export default function PayBillPage() {
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
+  };
+
+  // Manejar cambio de cantidad de recibos
+  const handleBulkCountChange = (count: number) => {
+    setBulkCount(count);
+    setBulkFields(Array.from({ length: count }, (_, i) => bulkFields[i] || { rpu: '', amount: '' }));
+  };
+
+  // Manejar cambio de campos
+  const handleBulkFieldChange = (idx: number, field: 'rpu' | 'amount', value: string) => {
+    setBulkFields(fields => fields.map((f, i) => i === idx ? { ...f, [field]: field === 'rpu' ? value.replace(/\D/g, '').slice(0, 12) : value.replace(/[^0-9.]/g, '') } : f));
+  };
+
+  // Simular pago múltiple
+  const handleBulkPay = () => {
+    setBulkStep('processing');
+    setTimeout(() => setBulkStep('success'), 2500);
+  };
+
+  const handleBulkReview = () => {
+    setBulkStep('review');
+  };
+
+  const handleBulkEdit = () => {
+    setBulkStep('input');
   };
 
   return (
@@ -140,25 +171,29 @@ export default function PayBillPage() {
                 <div className="space-y-6">
                   <div>
                     <label htmlFor="serviceNumber" className="block text-sm font-medium text-gray-700 mb-2">
-                      Número de Servicio CFE
+                      Número de Servicio CFE (RPU)
                     </label>
                     <input
                       type="text"
                       id="serviceNumber"
                       value={serviceNumber}
-                      onChange={(e) => setServiceNumber(e.target.value)}
-                      placeholder="Ingresa tu número de servicio de 10-12 dígitos"
+                      onChange={(e) => {
+                        // Solo permitir números y máximo 12 dígitos
+                        const value = e.target.value.replace(/\D/g, '').slice(0, 12);
+                        setServiceNumber(value);
+                      }}
+                      placeholder="Ingresa tu número de servicio de 12 dígitos (RPU)"
                       className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                       maxLength={12}
                     />
                     <p className="text-sm text-gray-500 mt-1">
-                      Puedes encontrarlo en la parte superior de tu recibo CFE
+                      El número de servicio (RPU) se encuentra en la parte superior de tu recibo CFE y consta de 12 dígitos.
                     </p>
                   </div>
                   
                   <button
                     onClick={handleLookupBill}
-                    disabled={serviceNumber.length < 10}
+                    disabled={serviceNumber.length !== 12}
                     className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-4 px-6 rounded-xl font-semibold text-lg hover:from-blue-700 hover:to-blue-800 disabled:from-gray-400 disabled:to-gray-400 disabled:cursor-not-allowed transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl disabled:transform-none"
                   >
                     Consultar Recibo
@@ -349,6 +384,177 @@ export default function PayBillPage() {
                 </div>
               </div>
             )}
+
+            {/* Botón para expandir sección de pago múltiple */}
+            <div className="flex flex-col gap-2 justify-end mb-4">
+              <button
+                className="inline-flex items-center px-4 py-2 rounded-lg bg-green-100 text-green-800 font-semibold text-sm hover:bg-green-200 transition-all"
+                onClick={() => setShowBulk(v => !v)}
+              >
+                Pago múltiple de recibos (Empresas)
+                {showBulk ? <ChevronUp className="ml-2 h-4 w-4" /> : <ChevronDown className="ml-2 h-4 w-4" />}
+              </button>
+
+              {/* Carga masiva por Excel (solo Enterprise) */}
+              <div className="flex flex-col items-end">
+                <button
+                  className="inline-flex items-center px-4 py-2 rounded-lg bg-gray-100 text-gray-500 font-semibold text-sm cursor-not-allowed mt-2 border border-dashed border-gray-300"
+                  disabled
+                  title="Disponible solo para clientes Enterprise"
+                >
+                  <svg className="h-5 w-5 mr-2 text-blue-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
+                  Carga masiva por Excel
+                  <span className="ml-2 bg-yellow-200 text-yellow-800 px-2 py-0.5 rounded text-xs font-bold">Enterprise</span>
+                </button>
+                <span className="text-xs text-gray-400 mt-1">Solicita acceso Enterprise para habilitar esta función</span>
+              </div>
+            </div>
+
+            {/* Sección expandible de pago múltiple */}
+            {showBulk && (
+              <div className="bg-white rounded-2xl shadow-sm border border-green-200 p-8 mb-8">
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">Pago múltiple de recibos</h2>
+                {bulkStep === 'input' && (
+                  <>
+                    <div className="mb-6 flex flex-col sm:flex-row sm:items-center gap-4">
+                      <label className="font-medium text-gray-700">¿Cuántos recibos quieres pagar?</label>
+                      <select
+                        className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500"
+                        value={bulkCount}
+                        onChange={e => handleBulkCountChange(Number(e.target.value))}
+                      >
+                        {Array.from({ length: 25 }, (_, i) => i + 1).map(n => (
+                          <option key={n} value={n}>{n}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                      {bulkFields.map((field, idx) => (
+                        <div key={idx} className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                          <label className="block text-sm font-medium text-gray-700 mb-1">RPU #{idx + 1}</label>
+                          <input
+                            type="text"
+                            value={field.rpu}
+                            onChange={e => handleBulkFieldChange(idx, 'rpu', e.target.value)}
+                            placeholder="Número de servicio de 12 dígitos"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 mb-2"
+                            maxLength={12}
+                          />
+                          <label className="block text-xs font-medium text-gray-500 mb-1">Monto (MXN)</label>
+                          <input
+                            type="text"
+                            value={field.amount}
+                            onChange={e => handleBulkFieldChange(idx, 'amount', e.target.value)}
+                            placeholder="Monto a pagar"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-4">
+                      <button
+                        className="flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white py-4 px-6 rounded-xl font-semibold text-lg hover:from-green-700 hover:to-green-800 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl"
+                        onClick={handleBulkReview}
+                        disabled={bulkFields.some(f => f.rpu.length !== 12 || !f.amount)}
+                      >
+                        Revisar y Confirmar
+                      </button>
+                    </div>
+                  </>
+                )}
+                {bulkStep === 'review' && (
+                  <>
+                    <h3 className="text-xl font-bold text-gray-900 mb-4">Revisión de recibos</h3>
+                    <div className="overflow-x-auto mb-6">
+                      <table className="min-w-full text-left border rounded-xl overflow-hidden">
+                        <thead>
+                          <tr className="bg-green-50">
+                            <th className="px-4 py-2 text-sm font-semibold text-gray-700">#</th>
+                            <th className="px-4 py-2 text-sm font-semibold text-gray-700">RPU</th>
+                            <th className="px-4 py-2 text-sm font-semibold text-gray-700">Monto (MXN)</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {bulkFields.map((field, idx) => (
+                            <tr key={idx} className="border-b last:border-b-0">
+                              <td className="px-4 py-2">{idx + 1}</td>
+                              <td className="px-4 py-2 font-mono">{field.rpu}</td>
+                              <td className="px-4 py-2">${parseFloat(field.amount || '0').toLocaleString('es-MX', { minimumFractionDigits: 2 })}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-4">
+                      <button
+                        className="flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white py-4 px-6 rounded-xl font-semibold text-lg hover:from-green-700 hover:to-green-800 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl"
+                        onClick={handleBulkPay}
+                      >
+                        Confirmar y Pagar Todos
+                      </button>
+                      <button
+                        className="flex-1 border border-gray-300 text-gray-700 py-4 px-6 rounded-xl font-semibold hover:border-green-600 hover:text-green-600 transition-colors"
+                        onClick={handleBulkEdit}
+                      >
+                        Editar Recibos
+                      </button>
+                    </div>
+                  </>
+                )}
+                {bulkStep === 'processing' && (
+                  <div className="text-center py-12">
+                    <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
+                      <CreditCard className="h-8 w-8 text-green-600" />
+                    </div>
+                    <h3 className="text-2xl font-bold text-gray-900 mb-2">Procesando pagos...</h3>
+                    <p className="text-gray-600">Estamos procesando todos los recibos. Esto puede tardar unos segundos.</p>
+                  </div>
+                )}
+                {bulkStep === 'success' && (
+                  <div className="text-center py-12">
+                    <div className="w-16 h-16 bg-green-200 rounded-full flex items-center justify-center mx-auto mb-6">
+                      <CheckCircle className="h-8 w-8 text-green-700" />
+                    </div>
+                    <h3 className="text-2xl font-bold text-green-700 mb-2">¡Pagos realizados con éxito!</h3>
+                    <div className="overflow-x-auto mb-6">
+                      <table className="min-w-full text-left border rounded-xl overflow-hidden">
+                        <thead>
+                          <tr className="bg-green-50">
+                            <th className="px-4 py-2 text-sm font-semibold text-gray-700">#</th>
+                            <th className="px-4 py-2 text-sm font-semibold text-gray-700">RPU</th>
+                            <th className="px-4 py-2 text-sm font-semibold text-gray-700">Monto (MXN)</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {bulkFields.map((field, idx) => (
+                            <tr key={idx} className="border-b last:border-b-0">
+                              <td className="px-4 py-2">{idx + 1}</td>
+                              <td className="px-4 py-2 font-mono">{field.rpu}</td>
+                              <td className="px-4 py-2">${parseFloat(field.amount || '0').toLocaleString('es-MX', { minimumFractionDigits: 2 })}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <p className="text-gray-700 mb-6">Todos los recibos han sido pagados correctamente.</p>
+                    <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                      <button
+                        className="flex-1 bg-green-600 text-white py-3 px-6 rounded-xl font-semibold hover:bg-green-700 transition-colors"
+                        onClick={() => { setBulkStep('input'); setBulkFields(Array.from({ length: bulkCount }, () => ({ rpu: '', amount: '' }))); }}
+                      >
+                        Realizar otro pago múltiple
+                      </button>
+                      <button
+                        className="flex-1 border border-gray-300 text-gray-700 py-3 px-6 rounded-xl font-semibold hover:border-green-600 hover:text-green-600 transition-colors"
+                        onClick={() => setShowBulk(false)}
+                      >
+                        Volver al inicio
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Right Column - Info Sidebar */}
@@ -362,7 +568,7 @@ export default function PayBillPage() {
               />
               <h3 className="font-bold text-gray-900 mb-2">Powered by EnerPay</h3>
               <p className="text-sm text-gray-600">
-                La plataforma más segura para pagos eléctricos con criptomonedas
+                La plataforma más segura para pagar tu recibo de luz con moneda estable o stablecoins
               </p>
             </div>
             

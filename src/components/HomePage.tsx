@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   Zap, 
   Globe, 
@@ -12,7 +12,11 @@ import {
   Gift
 } from 'lucide-react';
 
-export default function HomePage() {
+export default function HomePage({ onPageChange }: { onPageChange?: (page: string) => void }) {
+  const [showDemoModal, setShowDemoModal] = useState(false);
+  const [showRegisterModal, setShowRegisterModal] = useState(false);
+  const beneficiosRef = React.useRef<HTMLDivElement>(null);
+
   const features = [
     {
       icon: Globe,
@@ -84,11 +88,11 @@ export default function HomePage() {
             <div className="text-center lg:text-left">
               <div className="inline-flex items-center px-4 py-2 rounded-full bg-blue-100 text-blue-800 text-sm font-medium mb-8">
                 <Zap className="h-4 w-4 mr-2" />
-                La primera plataforma de pagos eléctricos con criptomonedas
+                La nueva forma de pagar tu luz y servicios: simple, digital y en stablecoins.
               </div>
               
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 mb-6 leading-tight">
-                Paga tu recibo de luz con{' '}
+                Paga tus recibos de luz y servicios con{' '}
                 <span className="bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent">
                   MXNB
                 </span>{' '}
@@ -96,12 +100,14 @@ export default function HomePage() {
               </h1>
               
               <p className="text-xl text-gray-600 mb-8 leading-relaxed">
-                EnerPay permite a los mexicanos en el extranjero pagar los recibos de luz de sus 
-                familiares de forma instantánea y segura usando criptomonedas estables.
+                EnerPay permite a los mexicanos en el extranjero pagar recibos de luz y otros servicios esenciales de sus familiares de forma instantánea y segura usando moneda estable MXNB. Plataforma pionera en México.
               </p>
               
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-                <button className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-8 py-4 rounded-xl font-semibold text-lg hover:from-blue-700 hover:to-blue-800 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl flex items-center justify-center group">
+                <button
+                  className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-8 py-4 rounded-xl font-semibold text-lg hover:from-blue-700 hover:to-blue-800 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl flex items-center justify-center group"
+                  onClick={() => onPageChange && onPageChange('pay')}
+                >
                   Pagar Ahora
                   <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
                 </button>
@@ -157,7 +163,7 @@ export default function HomePage() {
                                  <img src="CFE.jpg" alt="CFE" className="h-16 w-auto object-contain" />
                 <div className="text-left">
                   <h3 className="text-xl font-bold text-gray-900">Comisión Federal de Electricidad</h3>
-                  <p className="text-gray-600">Organismo público mexicano</p>
+                  <p className="text-gray-600">Empresa Productiva del Estado mexicano</p>
                 </div>
               </div>
               
@@ -182,15 +188,14 @@ export default function HomePage() {
       </section>
 
       {/* Features Section */}
-      <section className="py-24 bg-gray-50">
+      <section ref={beneficiosRef} className="py-24 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
               ¿Por qué elegir EnerPay?
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Revolucionamos la forma de pagar servicios eléctricos con tecnología blockchain 
-              y la simplicidad que necesitas.
+              Revolucionamos la forma de pagar servicios como la luz, el agua y más, con tecnología blockchain, MXNB y la simplicidad que necesitas.
             </p>
           </div>
           
@@ -226,11 +231,11 @@ export default function HomePage() {
               </div>
               
               <h2 className="text-3xl md:text-4xl font-bold mb-6">
-                Automatiza los pagos eléctricos de tu empresa
+                Automatiza los recibos de luz empresariales de tu empresa
               </h2>
               
               <p className="text-xl text-blue-100 mb-8 leading-relaxed">
-                Centraliza, automatiza y optimiza todos los pagos eléctricos de tus sucursales 
+                Centraliza, automatiza y optimiza todos los recibos de luz empresariales de tus sucursales 
                 con trazabilidad completa en blockchain y menor costo operativo.
               </p>
               
@@ -255,7 +260,10 @@ export default function HomePage() {
                 </div>
               </div>
               
-              <button className="bg-white text-blue-900 px-8 py-4 rounded-xl font-semibold text-lg hover:bg-blue-50 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl">
+              <button
+                className="bg-white text-blue-900 px-8 py-4 rounded-xl font-semibold text-lg hover:bg-blue-50 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl"
+                onClick={() => setShowDemoModal(true)}
+              >
                 Solicitar Demo Empresarial
               </button>
             </div>
@@ -294,15 +302,81 @@ export default function HomePage() {
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button className="bg-gradient-to-r from-blue-600 to-green-600 text-white px-8 py-4 rounded-xl font-semibold text-lg hover:from-blue-700 hover:to-green-700 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl">
+            <button
+              className="bg-gradient-to-r from-blue-600 to-green-600 text-white px-8 py-4 rounded-xl font-semibold text-lg hover:from-blue-700 hover:to-green-700 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl"
+              onClick={() => setShowRegisterModal(true)}
+            >
               Crear Cuenta Gratis
             </button>
-            <button className="border-2 border-gray-300 text-gray-700 px-8 py-4 rounded-xl font-semibold text-lg hover:border-blue-600 hover:text-blue-600 transition-all duration-200">
+            <button
+              className="border-2 border-gray-300 text-gray-700 px-8 py-4 rounded-xl font-semibold text-lg hover:border-blue-600 hover:text-blue-600 transition-all duration-200"
+              onClick={() => {
+                if (beneficiosRef.current) {
+                  beneficiosRef.current.scrollIntoView({ behavior: 'smooth' });
+                }
+              }}
+            >
               Conocer Más
             </button>
           </div>
         </div>
       </section>
+
+      {showDemoModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full relative">
+            <button className="absolute top-3 right-3 text-gray-400 hover:text-blue-600" onClick={() => setShowDemoModal(false)}>&times;</button>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">Solicitar Demo Empresarial</h2>
+            <form className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
+                <input type="text" className="w-full border border-gray-300 rounded-lg px-3 py-2" required />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Empresa</label>
+                <input type="text" className="w-full border border-gray-300 rounded-lg px-3 py-2" required />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Correo electrónico</label>
+                <input type="email" className="w-full border border-gray-300 rounded-lg px-3 py-2" required />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
+                <input type="tel" className="w-full border border-gray-300 rounded-lg px-3 py-2" required />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Mensaje</label>
+                <textarea className="w-full border border-gray-300 rounded-lg px-3 py-2" rows={3} required />
+              </div>
+              <button type="submit" className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors">Enviar solicitud</button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showRegisterModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full relative">
+            <button className="absolute top-3 right-3 text-gray-400 hover:text-blue-600" onClick={() => setShowRegisterModal(false)}>&times;</button>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">Crear Cuenta Gratis</h2>
+            <form className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
+                <input type="text" className="w-full border border-gray-300 rounded-lg px-3 py-2" required />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Correo electrónico</label>
+                <input type="email" className="w-full border border-gray-300 rounded-lg px-3 py-2" required />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
+                <input type="password" className="w-full border border-gray-300 rounded-lg px-3 py-2" required />
+              </div>
+              <button type="submit" className="w-full bg-gradient-to-r from-blue-600 to-green-600 text-white py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-green-700 transition-colors">Crear Cuenta</button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
