@@ -1,5 +1,4 @@
 {
-  "_comment": "Updated deployment config",
   "version": 2,
   "builds": [
     {
