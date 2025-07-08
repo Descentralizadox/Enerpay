@@ -93,28 +93,28 @@ export default function HomePage({ onPageChange }: { onPageChange?: (page: strin
               
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 mb-6 leading-tight">
                 Paga tus recibos de luz y servicios con{' '}
-                <span className="bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent">
-                  MXNB
-                </span>{' '}
-                desde cualquier parte del mundo
-              </h1>
-              
+              <span className="bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent">
+                MXNB
+              </span>{' '}
+              desde cualquier parte del mundo
+            </h1>
+            
               <p className="text-xl text-gray-600 mb-8 leading-relaxed">
                 EnerPay permite a los mexicanos en el extranjero pagar recibos de luz y otros servicios esenciales de sus familiares de forma instantánea y segura usando moneda estable MXNB. Plataforma pionera en México.
-              </p>
-              
+            </p>
+            
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
                 <button
                   className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-8 py-4 rounded-xl font-semibold text-lg hover:from-blue-700 hover:to-blue-800 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl flex items-center justify-center group"
                   onClick={() => onPageChange && onPageChange('pay')}
                 >
-                  Pagar Ahora
-                  <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
-                </button>
-                <button className="border-2 border-gray-300 text-gray-700 px-8 py-4 rounded-xl font-semibold text-lg hover:border-blue-600 hover:text-blue-600 transition-all duration-200 flex items-center justify-center">
-                  <Smartphone className="mr-2 h-5 w-5" />
-                  Ver Demo
-                </button>
+                Pagar Ahora
+                <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+              </button>
+              <button className="border-2 border-gray-300 text-gray-700 px-8 py-4 rounded-xl font-semibold text-lg hover:border-blue-600 hover:text-blue-600 transition-all duration-200 flex items-center justify-center">
+                <Smartphone className="mr-2 h-5 w-5" />
+                Ver Demo
+              </button>
               </div>
             </div>
           </div>

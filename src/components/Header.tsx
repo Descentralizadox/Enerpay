@@ -48,13 +48,13 @@ export default function Header({ currentPage, onPageChange }: HeaderProps) {
           </div>
 
           {/* Selector de idioma */}
-          <button
-            onClick={toggleLanguage}
-            className="flex items-center space-x-1 px-3 py-2 rounded-lg text-gray-600 hover:text-blue-600 hover:bg-blue-50 transition-colors"
-          >
-            <Globe className="h-4 w-4" />
-            <span className="text-sm font-medium">{language.toUpperCase()}</span>
-          </button>
+            <button
+              onClick={toggleLanguage}
+              className="flex items-center space-x-1 px-3 py-2 rounded-lg text-gray-600 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+            >
+              <Globe className="h-4 w-4" />
+              <span className="text-sm font-medium">{language.toUpperCase()}</span>
+            </button>
         </div>
       </div>
     </header>
