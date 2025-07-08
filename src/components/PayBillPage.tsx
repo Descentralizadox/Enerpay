@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   CreditCard, 
   Zap, 
@@ -21,6 +21,66 @@ interface BillInfo {
   status: string;
 }
 
+interface BankAccount {
+  id: string;
+  clabe: string;
+  nickname?: string;
+  account_holder?: string;
+  [key: string]: any;
+}
+
+// Función para obtener el ID de la cuenta bancaria registrada
+async function fetchBankAccountId() {
+  const res = await fetch('http://localhost:4000/api/bank-accounts');
+  const data = await res.json();
+  
+  if (!res.ok) {
+    console.error('Error al obtener cuentas bancarias:', data);
+    throw new Error(data.error?.message || 'Error al obtener cuentas bancarias');
+  }
+  
+  if (data && data.success && data.payload && data.payload.length > 0) {
+    // Usa la primera cuenta disponible
+    const cuenta = data.payload[0];
+    console.log('Cuenta encontrada:', cuenta);
+    return cuenta.id;
+  }
+  console.log('No se encontraron cuentas bancarias');
+  return null;
+}
+
+// Función para hacer el redemption
+async function redeemMXNB(amount: number, destination_bank_account_id: string) {
+  console.log(`🔄 Iniciando redención: ${amount} MXN a cuenta ${destination_bank_account_id}`);
+  
+  const res = await fetch('http://localhost:4000/api/redeem', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ amount, destination_bank_account_id })
+  });
+  
+  console.log(`📡 Respuesta del servidor: ${res.status} ${res.statusText}`);
+  
+  const result = await res.json();
+  console.log(`✅ Resultado de redención:`, result);
+  
+  if (!res.ok) {
+    console.error(`❌ Error del servidor:`, result);
+    const errorMessage = result.error?.message || `HTTP ${res.status}: Error en la redención`;
+    throw new Error(errorMessage);
+  }
+  
+  // Verificar si la respuesta del backend indica éxito
+  if (!result.success) {
+    console.error(`❌ Redención falló:`, result.error);
+    throw new Error(result.error?.message || 'Error en la redención');
+  }
+  
+  return result;
+}
+
+
+
 export default function PayBillPage() {
   const [serviceNumber, setServiceNumber] = useState('');
   const [amount, setAmount] = useState('');
@@ -30,6 +90,91 @@ export default function PayBillPage() {
   const [bulkCount, setBulkCount] = useState(2);
   const [bulkFields, setBulkFields] = useState([{ rpu: '', amount: '' }, { rpu: '', amount: '' }]);
   const [bulkStep, setBulkStep] = useState<'input' | 'review' | 'processing' | 'success'>('input');
+  const [bulkProgress, setBulkProgress] = useState({ current: 0, total: 0 });
+  const [bulkResults, setBulkResults] = useState<Array<{rpu: string, amount: string, success: boolean, result: any}>>([]);
+  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
+  const [selectedAccountId, setSelectedAccountId] = useState('');
+  const [redeemResult, setRedeemResult] = useState<any>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+
+  useEffect(() => {
+    console.log('Cargando cuentas bancarias...');
+    fetch('http://localhost:4000/api/bank-accounts')
+      .then(res => {
+        console.log('Respuesta del servidor:', res.status);
+        return res.json();
+      })
+      .then(data => {
+        console.log('Datos recibidos:', data);
+        if (data.success) {
+          setBankAccounts(data.payload || []);
+        } else {
+          console.error('Error en respuesta:', data.error);
+          setBankAccounts([]);
+        }
+      })
+      .catch(error => {
+        console.error('Error al cargar cuentas:', error);
+      });
+  }, []);
+
+  const CLABE_DESEADA = '002010077777777771';
+
+  // Eliminamos el ID hardcodeado
+  // const ACCOUNT_ID = 'ec21a965-7a2a-48b8-bd30-a33cb2fd3b8c';
+
+  const handleRedeem = async () => {
+    setLoading(true);
+    setRedeemResult(null);
+    setErrorMsg(null);
+    try {
+      console.log('Obteniendo cuentas bancarias...');
+      // 1. Obtener cuentas bancarias del backend
+      const res = await fetch('http://localhost:4000/api/bank-accounts');
+      console.log('Status de cuentas bancarias:', res.status);
+      const data = await res.json();
+      console.log('Cuentas bancarias:', data);
+      
+      if (!res.ok || !data.success) {
+        setErrorMsg(data.error?.message || 'Error al obtener cuentas bancarias');
+        setLoading(false);
+        return;
+      }
+      
+      const cuentas: BankAccount[] = data.payload || [];
+      
+      // 2. Usar la primera cuenta disponible (o puedes filtrar por criterios específicos)
+      if (cuentas.length === 0) {
+        setErrorMsg('No hay cuentas bancarias registradas');
+        setLoading(false);
+        return;
+      }
+      
+      const cuenta = cuentas[0]; // Tomamos la primera cuenta
+      console.log('Usando cuenta:', cuenta);
+      
+      // 3. Hacer la redención con el ID obtenido dinámicamente
+      console.log('Enviando redención...');
+      const response = await fetch('http://localhost:4000/api/redeem', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: Number(amount),
+          destination_bank_account_id: cuenta.id
+        })
+      });
+      console.log('Status de redención:', response.status);
+      const redeemData = await response.json();
+      console.log('Resultado de redención:', redeemData);
+      setRedeemResult(redeemData);
+    } catch (error) {
+      console.error('Error en redención:', error);
+      setErrorMsg('Error al redimir');
+    }
+    setLoading(false);
+  };
 
   const mockBillInfo = {
     serviceNumber: '123456789012',
@@ -50,11 +195,24 @@ export default function PayBillPage() {
     }
   };
 
-  const handlePayment = () => {
+  // Reemplazo handlePayment para integrar la lógica de backend
+  const handlePayment = async () => {
     setPaymentStep('processing');
-    setTimeout(() => {
+    // 1. Obtén el ID de la cuenta bancaria
+    const bankAccountId = await fetchBankAccountId();
+    if (!bankAccountId) {
+      alert('No se encontró la cuenta bancaria registrada.');
+      setPaymentStep('input');
+      return;
+    }
+    // 2. Haz el redemption
+    const result = await redeemMXNB(Number(billInfo?.amount), bankAccountId);
+    if (result.success) {
       setPaymentStep('success');
-    }, 3000);
+    } else {
+      alert('Error al redimir: ' + (result.error?.message || ''));
+      setPaymentStep('input');
+    }
   };
 
   const copyToClipboard = (text: string) => {
@@ -72,10 +230,103 @@ export default function PayBillPage() {
     setBulkFields(fields => fields.map((f, i) => i === idx ? { ...f, [field]: field === 'rpu' ? value.replace(/\D/g, '').slice(0, 12) : value.replace(/[^0-9.]/g, '') } : f));
   };
 
-  // Simular pago múltiple
-  const handleBulkPay = () => {
+  // Pago múltiple real con redención
+  const handleBulkPay = async () => {
     setBulkStep('processing');
-    setTimeout(() => setBulkStep('success'), 2500);
+    
+    // Filtrar solo los campos válidos
+    const validFields = bulkFields.filter(field => field.rpu && field.amount);
+    setBulkProgress({ current: 0, total: validFields.length });
+    setBulkResults([]);
+    
+    try {
+      // 1. Obtener cuenta bancaria registrada
+      const bankAccountId = await fetchBankAccountId();
+      if (!bankAccountId) {
+        alert('No se encontró la cuenta bancaria registrada.');
+        setBulkStep('input');
+        return;
+      }
+      
+      // 2. Procesar cada recibo secuencialmente
+      const results = [];
+      for (let i = 0; i < validFields.length; i++) {
+        const field = validFields[i];
+        
+        // Actualizar progreso
+        setBulkProgress({ current: i + 1, total: validFields.length });
+        
+        console.log(`Procesando recibo ${i + 1}/${validFields.length}: RPU ${field.rpu}, Monto: $${field.amount}`);
+        
+        try {
+          const result = await redeemMXNB(Number(field.amount), bankAccountId);
+          
+          // Verificar si la respuesta del backend indica éxito o error
+          const isSuccess = result.success === true;
+          
+          const processedResult = { 
+            rpu: field.rpu, 
+            amount: field.amount, 
+            result, 
+            success: isSuccess 
+          };
+          results.push(processedResult);
+          
+          // Actualizar resultados en tiempo real
+          setBulkResults(prevResults => [...prevResults, processedResult]);
+          
+          // Si hubo error, loggearlo
+          if (!isSuccess) {
+            console.warn(`⚠️ Redención fallida para RPU ${field.rpu}:`, result.error);
+          }
+          
+          // Pausa más larga entre transacciones para evitar rate limits
+          if (i < validFields.length - 1) {
+            console.log('Esperando 3 segundos antes del siguiente recibo...');
+            await new Promise(resolve => setTimeout(resolve, 3000));
+          }
+        } catch (error) {
+          console.error(`❌ Error en recibo ${field.rpu}:`, error);
+          const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+          const failedResult = { 
+            rpu: field.rpu, 
+            amount: field.amount, 
+            result: { success: false, error: errorMessage }, 
+            success: false 
+          };
+          results.push(failedResult);
+          setBulkResults(prevResults => [...prevResults, failedResult]);
+        }
+      }
+      
+      // 3. Analizar resultados finales
+      const successful = results.filter(r => r.success);
+      const failed = results.filter(r => !r.success);
+      
+      console.log(`Resultados: ${successful.length} exitosos, ${failed.length} fallidos`);
+      
+      // Pequeña pausa antes de mostrar resultados
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      if (failed.length === 0) {
+        // Todos exitosos
+        setBulkStep('success');
+      } else if (successful.length > 0) {
+        // Algunos exitosos, algunos fallidos
+        alert(`Se procesaron ${successful.length} pagos exitosamente. ${failed.length} pagos fallaron.`);
+        setBulkStep('success');
+      } else {
+        // Todos fallaron
+        alert('Todos los pagos fallaron. Por favor, verifica tu conexión e intenta nuevamente.');
+        setBulkStep('input');
+      }
+      
+    } catch (error) {
+      console.error('Error general en pagos múltiples:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      alert('Error en el procesamiento de pagos múltiples: ' + errorMessage);
+      setBulkStep('input');
+    }
   };
 
   const handleBulkReview = () => {
@@ -85,6 +336,8 @@ export default function PayBillPage() {
   const handleBulkEdit = () => {
     setBulkStep('input');
   };
+
+
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -385,6 +638,12 @@ export default function PayBillPage() {
               </div>
             )}
 
+            {errorMsg && (
+              <div className="mt-4 p-2 border rounded bg-red-100 text-red-700">
+                {errorMsg}
+              </div>
+            )}
+
             {/* Botón para expandir sección de pago múltiple */}
             <div className="flex flex-col gap-2 justify-end mb-4">
               <button
@@ -502,45 +761,155 @@ export default function PayBillPage() {
                   </>
                 )}
                 {bulkStep === 'processing' && (
-                  <div className="text-center py-12">
-                    <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
-                      <CreditCard className="h-8 w-8 text-green-600" />
+                  <div className="py-12">
+                    <div className="text-center mb-8">
+                      <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
+                        <CreditCard className="h-8 w-8 text-green-600" />
+                      </div>
+                      <h3 className="text-2xl font-bold text-gray-900 mb-2">Procesando pagos múltiples...</h3>
+                      <p className="text-gray-600 mb-4">Procesando {bulkProgress.current} de {bulkProgress.total} recibos</p>
+                      
+                      {/* Barra de progreso */}
+                      <div className="w-full bg-gray-200 rounded-full h-2.5 mb-6">
+                        <div 
+                          className="bg-green-600 h-2.5 rounded-full transition-all duration-500" 
+                          style={{ width: `${bulkProgress.total > 0 ? (bulkProgress.current / bulkProgress.total) * 100 : 0}%` }}
+                        ></div>
+                      </div>
                     </div>
-                    <h3 className="text-2xl font-bold text-gray-900 mb-2">Procesando pagos...</h3>
-                    <p className="text-gray-600">Estamos procesando todos los recibos. Esto puede tardar unos segundos.</p>
+                    
+                    {/* Resultados en tiempo real */}
+                    {bulkResults.length > 0 && (
+                      <div className="bg-gray-50 rounded-xl p-6">
+                        <h4 className="font-semibold text-gray-900 mb-4">Resultados en tiempo real:</h4>
+                        <div className="space-y-2 max-h-64 overflow-y-auto">
+                          {bulkResults.map((result, idx) => (
+                            <div key={idx} className={`flex items-center justify-between p-3 rounded-lg ${result.success ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
+                              <div className="flex items-center space-x-3">
+                                <div className={`w-6 h-6 rounded-full flex items-center justify-center ${result.success ? 'bg-green-100' : 'bg-red-100'}`}>
+                                  {result.success ? (
+                                    <CheckCircle className="h-4 w-4 text-green-600" />
+                                  ) : (
+                                    <span className="text-red-600 text-xs">✕</span>
+                                  )}
+                                </div>
+                                <div>
+                                  <p className="font-mono text-sm">RPU: {result.rpu}</p>
+                                  <p className="text-xs text-gray-600">${parseFloat(result.amount).toLocaleString('es-MX', { minimumFractionDigits: 2 })} MXN</p>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <p className={`text-sm font-semibold ${result.success ? 'text-green-700' : 'text-red-700'}`}>
+                                  {result.success ? 'Exitoso' : 'Falló'}
+                                </p>
+                                {result.result?.payload?.id && (
+                                  <p className="text-xs text-gray-500 font-mono">ID: {result.result.payload.id.slice(0, 8)}...</p>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
                 {bulkStep === 'success' && (
-                  <div className="text-center py-12">
-                    <div className="w-16 h-16 bg-green-200 rounded-full flex items-center justify-center mx-auto mb-6">
-                      <CheckCircle className="h-8 w-8 text-green-700" />
+                  <div className="py-12">
+                    <div className="text-center mb-8">
+                      <div className="w-16 h-16 bg-green-200 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <CheckCircle className="h-8 w-8 text-green-700" />
+                      </div>
+                      <h3 className="text-2xl font-bold text-green-700 mb-2">¡Pagos múltiples completados!</h3>
+                      <p className="text-gray-600 mb-6">
+                        {bulkResults.filter(r => r.success).length} de {bulkResults.length} pagos fueron exitosos
+                      </p>
                     </div>
-                    <h3 className="text-2xl font-bold text-green-700 mb-2">¡Pagos realizados con éxito!</h3>
-                    <div className="overflow-x-auto mb-6">
-                      <table className="min-w-full text-left border rounded-xl overflow-hidden">
-                        <thead>
-                          <tr className="bg-green-50">
-                            <th className="px-4 py-2 text-sm font-semibold text-gray-700">#</th>
-                            <th className="px-4 py-2 text-sm font-semibold text-gray-700">RPU</th>
-                            <th className="px-4 py-2 text-sm font-semibold text-gray-700">Monto (MXN)</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {bulkFields.map((field, idx) => (
-                            <tr key={idx} className="border-b last:border-b-0">
-                              <td className="px-4 py-2">{idx + 1}</td>
-                              <td className="px-4 py-2 font-mono">{field.rpu}</td>
-                              <td className="px-4 py-2">${parseFloat(field.amount || '0').toLocaleString('es-MX', { minimumFractionDigits: 2 })}</td>
+                    
+                    {/* Resumen de resultados */}
+                    <div className="grid md:grid-cols-2 gap-4 mb-6">
+                      <div className="bg-green-50 rounded-xl p-4 border border-green-200">
+                        <div className="flex items-center space-x-2 mb-2">
+                          <CheckCircle className="h-5 w-5 text-green-600" />
+                          <h4 className="font-semibold text-green-700">Pagos Exitosos</h4>
+                        </div>
+                        <p className="text-2xl font-bold text-green-700">
+                          {bulkResults.filter(r => r.success).length}
+                        </p>
+                        <p className="text-sm text-green-600">
+                          Total: ${bulkResults.filter(r => r.success).reduce((sum, r) => sum + parseFloat(r.amount), 0).toLocaleString('es-MX', { minimumFractionDigits: 2 })} MXN
+                        </p>
+                      </div>
+                      
+                      {bulkResults.filter(r => !r.success).length > 0 && (
+                        <div className="bg-red-50 rounded-xl p-4 border border-red-200">
+                          <div className="flex items-center space-x-2 mb-2">
+                            <span className="w-5 h-5 text-red-600">✕</span>
+                            <h4 className="font-semibold text-red-700">Pagos Fallidos</h4>
+                          </div>
+                          <p className="text-2xl font-bold text-red-700">
+                            {bulkResults.filter(r => !r.success).length}
+                          </p>
+                          <p className="text-sm text-red-600">
+                            Total: ${bulkResults.filter(r => !r.success).reduce((sum, r) => sum + parseFloat(r.amount), 0).toLocaleString('es-MX', { minimumFractionDigits: 2 })} MXN
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Detalle de todos los resultados */}
+                    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden mb-6">
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full text-left">
+                          <thead>
+                            <tr className="bg-gray-50">
+                              <th className="px-4 py-3 text-sm font-semibold text-gray-700">Estado</th>
+                              <th className="px-4 py-3 text-sm font-semibold text-gray-700">RPU</th>
+                              <th className="px-4 py-3 text-sm font-semibold text-gray-700">Monto (MXN)</th>
+                              <th className="px-4 py-3 text-sm font-semibold text-gray-700">ID Transacción</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                          </thead>
+                          <tbody>
+                            {bulkResults.map((result, idx) => (
+                              <tr key={idx} className="border-b last:border-b-0">
+                                <td className="px-4 py-3">
+                                  <div className="flex items-center space-x-2">
+                                    {result.success ? (
+                                      <CheckCircle className="h-4 w-4 text-green-600" />
+                                    ) : (
+                                      <span className="text-red-600 text-sm">✕</span>
+                                    )}
+                                    <span className={`text-sm font-medium ${result.success ? 'text-green-700' : 'text-red-700'}`}>
+                                      {result.success ? 'Exitoso' : 'Falló'}
+                                    </span>
+                                  </div>
+                                </td>
+                                <td className="px-4 py-3 font-mono text-sm">{result.rpu}</td>
+                                <td className="px-4 py-3">${parseFloat(result.amount).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</td>
+                                <td className="px-4 py-3">
+                                  {result.result?.payload?.id ? (
+                                    <span className="font-mono text-xs text-gray-600">
+                                      {result.result.payload.id.slice(0, 12)}...
+                                    </span>
+                                  ) : (
+                                    <span className="text-xs text-gray-400">N/A</span>
+                                  )}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
-                    <p className="text-gray-700 mb-6">Todos los recibos han sido pagados correctamente.</p>
+                    
                     <div className="flex flex-col sm:flex-row gap-4 justify-center">
                       <button
                         className="flex-1 bg-green-600 text-white py-3 px-6 rounded-xl font-semibold hover:bg-green-700 transition-colors"
-                        onClick={() => { setBulkStep('input'); setBulkFields(Array.from({ length: bulkCount }, () => ({ rpu: '', amount: '' }))); }}
+                        onClick={() => { 
+                          setBulkStep('input'); 
+                          setBulkFields(Array.from({ length: bulkCount }, () => ({ rpu: '', amount: '' }))); 
+                          setBulkResults([]);
+                          setBulkProgress({ current: 0, total: 0 });
+                        }}
                       >
                         Realizar otro pago múltiple
                       </button>
@@ -622,6 +991,7 @@ export default function PayBillPage() {
                 Contactar Soporte
               </button>
             </div>
+
           </div>
         </div>
       </div>

@@ -1,54 +1,29 @@
-import axios from 'axios';
-import crypto from 'crypto';
+// Este archivo ya no debe contener lógica de peticiones firmadas a la API de Bitso.
+// Usa fetch a los endpoints del backend para interactuar con Bitso.
 
-const BITSO_API_KEY = process.env.BITSO_API_KEY!;
-const BITSO_API_SECRET = process.env.BITSO_API_SECRET!;
-const BITSO_BASE_URL = 'https://api.bitso.com';
-
-function getAuthHeaders(httpMethod: string, endpoint: string, body: any = '') {
-  const nonce = Date.now() * 1000;
-  const requestBody = typeof body === 'string' ? body : JSON.stringify(body || {});
-  const message = `${nonce}${httpMethod}${endpoint}${requestBody}`;
-  const signature = crypto.createHmac('sha256', BITSO_API_SECRET).update(message).digest('hex');
-
-  return {
-    'Authorization': `Bitso ${BITSO_API_KEY}:${nonce}:${signature}`,
-    'Content-Type': 'application/json'
-  };
+// Ejemplo de helper para obtener balance desde el backend:
+export async function getBackendBitsoBalance(currency: string = 'mxn') {
+  const res = await fetch(`/api/bitso/balance?currency=${currency}`);
+  const data = await res.json();
+  return data.balance;
 }
 
-export async function createClabe(label: string) {
-  const endpoint = '/spei/v1/clabes';
-  const url = `${BITSO_BASE_URL}${endpoint}`;
-  const body = { label };
-  const headers = getAuthHeaders('POST', endpoint, body);
-  const response = await axios.post(url, body, { headers });
-  return response.data;
+// Ejemplo de helper para crear una CLABE desde el backend:
+export async function createBackendClabe(label: string) {
+  const res = await fetch('/api/bitso/create-clabe', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ label })
+  });
+  return await res.json();
 }
 
-export async function createOneTimePayment(payment_id: string, amount: string, payer_name: string) {
-  const endpoint = '/spei/v1/payments';
-  const url = `${BITSO_BASE_URL}${endpoint}`;
-  const body = { payment_id, amount, payer_name };
-  const headers = getAuthHeaders('POST', endpoint, body);
-  const response = await axios.post(url, body, { headers });
-  return response.data;
-}
-
-export async function getBalance(currency: string = 'mxn') {
-  const endpoint = '/v3/balance/';
-  const url = `${BITSO_BASE_URL}${endpoint}`;
-  const headers = getAuthHeaders('GET', endpoint);
-  const response = await axios.get(url, { headers });
-  const balance = response.data.balances.find((b: any) => b.currency === currency);
-  return balance ? balance.total : '0';
-}
-
-export async function placeOrder(book: string, side: 'buy' | 'sell', amount: string, price: string) {
-  const endpoint = '/v3/orders/';
-  const url = `${BITSO_BASE_URL}${endpoint}`;
-  const body = { book, side, type: 'limit', major: amount, price };
-  const headers = getAuthHeaders('POST', endpoint, body);
-  const response = await axios.post(url, body, { headers });
-  return response.data;
+// Ejemplo de helper para hacer una orden desde el backend:
+export async function placeBackendOrder(book: string, side: 'buy' | 'sell', amount: string, price: string) {
+  const res = await fetch('/api/bitso/order', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ book, side, amount, price })
+  });
+  return await res.json();
 } 
