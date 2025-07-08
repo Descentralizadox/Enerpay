@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { 
   CreditCard, 
   Zap, 
@@ -7,7 +7,6 @@ import {
   CheckCircle, 
   AlertCircle, 
   Copy,
-  ExternalLink,
   ChevronDown,
   ChevronUp
 } from 'lucide-react';
@@ -80,7 +79,7 @@ async function redeemMXNB(amount: number, destination_bank_account_id: string): 
 
 export default function PayBillPage() {
   const [serviceNumber, setServiceNumber] = useState('');
-  const [amount, setAmount] = useState('');
+  const [amount] = useState('');
   const [paymentStep, setPaymentStep] = useState('input'); // input, review, processing, success
   const [billInfo, setBillInfo] = useState<BillInfo | null>(null);
   const [showBulk, setShowBulk] = useState(false);
@@ -90,7 +89,6 @@ export default function PayBillPage() {
   const [bulkProgress, setBulkProgress] = useState({ current: 0, total: 0 });
   const [bulkResults, setBulkResults] = useState<Array<{rpu: string, amount: string, success: boolean, result: any}>>([]);
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
-  const [selectedAccountId, setSelectedAccountId] = useState('');
   const [redeemResult, setRedeemResult] = useState<any>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -112,8 +110,6 @@ export default function PayBillPage() {
         console.error('Error al cargar cuentas:', error);
       });
   }, []);
-
-  const CLABE_DESEADA = '002010077777777771';
 
   // Eliminamos el ID hardcodeado
   // const ACCOUNT_ID = 'ec21a965-7a2a-48b8-bd30-a33cb2fd3b8c';
