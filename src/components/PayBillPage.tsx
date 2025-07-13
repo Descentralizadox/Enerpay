@@ -609,7 +609,7 @@ export default function PayBillPage() {
                 
                 <div className="flex flex-col sm:flex-row gap-4">
                   <button className="flex-1 bg-blue-600 text-white py-3 px-6 rounded-xl font-semibold hover:bg-blue-700 transition-colors">
-                    Descaragar Comprobante
+                    Descargar Comprobante
                   </button>
                   <button 
                     onClick={() => {
