@@ -29,7 +29,7 @@ function App() {
     }
     switch (currentPage) {
       case 'home':
-        return <HomePage />;
+        return <HomePage onPageChange={setCurrentPage} />;
       case 'pay':
         return <PayBillPage />;
       case 'learn':
@@ -39,7 +39,7 @@ function App() {
       case 'dashboard':
         return <DashboardPage />;
       default:
-        return <HomePage />;
+        return <HomePage onPageChange={setCurrentPage} />;
     }
   };
 
