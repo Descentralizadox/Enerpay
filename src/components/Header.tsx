@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import React from "react";
 import { Globe } from 'lucide-react';
+import { ConnectButton } from '@rainbow-me/rainbowkit';
 
 interface HeaderProps {
   currentPage: string;
@@ -7,7 +8,7 @@ interface HeaderProps {
 }
 
 export default function Header({ currentPage, onPageChange }: HeaderProps) {
-  const [language, setLanguage] = useState('es');
+  const [language, setLanguage] = React.useState('es');
 
   const toggleLanguage = () => {
     setLanguage(language === 'es' ? 'en' : 'es');
@@ -47,7 +48,9 @@ export default function Header({ currentPage, onPageChange }: HeaderProps) {
             )}
           </div>
 
-          {/* Selector de idioma */}
+          {/* Botón de conexión de wallet y selector de idioma */}
+          <div className="flex items-center gap-4">
+            <ConnectButton />
             <button
               onClick={toggleLanguage}
               className="flex items-center space-x-1 px-3 py-2 rounded-lg text-gray-600 hover:text-blue-600 hover:bg-blue-50 transition-colors"
@@ -55,6 +58,7 @@ export default function Header({ currentPage, onPageChange }: HeaderProps) {
               <Globe className="h-4 w-4" />
               <span className="text-sm font-medium">{language.toUpperCase()}</span>
             </button>
+          </div>
         </div>
       </div>
     </header>
